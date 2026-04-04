@@ -1,4 +1,7 @@
 
+> **Fork Notice**
+> This fork is optimized for **Forge Neo** (Python 3.13).
+
 <div align="center">
 
   <img src="https://github.com/abdozmantar/StableDiffusion-InstaSwap/blob/main/Logo.png?raw=true?raw=true" alt="logo" width="180px"/>
