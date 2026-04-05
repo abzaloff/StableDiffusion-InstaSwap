@@ -11,9 +11,16 @@ import gradio as gr
 from modules import shared
 
 def update_upscalers_list(selected: str):
-    return gr.Dropdown.update(
-        value=selected, choices=[upscaler.name for upscaler in shared.sd_upscalers]
-    )
+    try:
+        # GR3.x
+        return gr.Dropdown.update(
+            value=selected, choices=[upscaler.name for upscaler in shared.sd_upscalers]
+        )
+    except:
+        # GR4.x
+        return gr.Dropdown(
+            value=selected, choices=[upscaler.name for upscaler in shared.sd_upscalers]
+        )
 
 # TAB UPSCALE
 def show(show_br: bool = True):

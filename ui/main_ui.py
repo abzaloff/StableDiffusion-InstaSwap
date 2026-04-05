@@ -20,10 +20,16 @@ from scripts.swapper import (
 from modules import shared
 # SAVE_ORIGINAL: bool = False
 def update_fm_list(selected: str):
-    
-    return gr.Dropdown.update(
-        value=selected, choices=get_model_names(get_facemodels)
-    )
+    try:
+        # GR3.x
+        return gr.Dropdown.update(
+            value=selected, choices=get_model_names(get_facemodels)
+        )
+    except:
+        # GR4.x
+        return gr.Dropdown(
+            value=selected, choices=get_model_names(get_facemodels)
+        )
 
 # TAB MAIN
 def show(is_img2img: bool, show_br: bool = True, **msgs):
@@ -34,31 +40,64 @@ def show(is_img2img: bool, show_br: bool = True, **msgs):
         if evt.index == 2:
             # if SAVE_ORIGINAL != selected:
             #     SAVE_ORIGINAL = selected
-            return {
-                control_col_1: gr.Column.update(visible=False),
-                control_col_2: gr.Column.update(visible=False),
-                control_col_3: gr.Column.update(visible=True),
-                # save_original: gr.Checkbox.update(value=False,visible=False),
-                imgs_hash_clear: gr.Button.update(visible=True)
-            }
+            try:
+                # GR3.x
+                return {
+                    control_col_1: gr.Column.update(visible=False),
+                    control_col_2: gr.Column.update(visible=False),
+                    control_col_3: gr.Column.update(visible=True),
+                    # save_original: gr.Checkbox.update(value=False,visible=False),
+                    imgs_hash_clear: gr.Button.update(visible=True)
+                }
+            except:
+                # GR4.x
+                return {
+                    control_col_1: gr.Column(visible=False),
+                    control_col_2: gr.Column(visible=False),
+                    control_col_3: gr.Column(visible=True),
+                    # save_original: gr.Checkbox.update(value=False,visible=False),
+                    imgs_hash_clear: gr.Button(visible=True)
+                }
             
         if evt.index == 0:
-            return {
-                control_col_1: gr.Column.update(visible=True),
-                control_col_2: gr.Column.update(visible=False),
-                control_col_3: gr.Column.update(visible=False),
-                # save_original: gr.Checkbox.update(value=SAVE_ORIGINAL,visible=show_br),
-                imgs_hash_clear: gr.Button.update(visible=False)
-            }
+            try:
+                # GR3.x
+                return {
+                    control_col_1: gr.Column.update(visible=True),
+                    control_col_2: gr.Column.update(visible=False),
+                    control_col_3: gr.Column.update(visible=False),
+                    # save_original: gr.Checkbox.update(value=SAVE_ORIGINAL,visible=show_br),
+                    imgs_hash_clear: gr.Button.update(visible=False)
+                }
+            except:
+                # GR4.x
+                return {
+                    control_col_1: gr.Column(visible=True),
+                    control_col_2: gr.Column(visible=False),
+                    control_col_3: gr.Column(visible=False),
+                    # save_original: gr.Checkbox.update(value=SAVE_ORIGINAL,visible=show_br),
+                    imgs_hash_clear: gr.Button(visible=False)
+                }
             
         if evt.index == 1:
-            return {
-                control_col_1: gr.Column.update(visible=False),
-                control_col_2: gr.Column.update(visible=True),
-                control_col_3: gr.Column.update(visible=False),
-                # save_original: gr.Checkbox.update(value=SAVE_ORIGINAL,visible=show_br),
-                imgs_hash_clear: gr.Button.update(visible=False)
-            }
+            try:
+                # GR3.x
+                return {
+                    control_col_1: gr.Column.update(visible=False),
+                    control_col_2: gr.Column.update(visible=True),
+                    control_col_3: gr.Column.update(visible=False),
+                    # save_original: gr.Checkbox.update(value=SAVE_ORIGINAL,visible=show_br),
+                    imgs_hash_clear: gr.Button.update(visible=False)
+                }
+            except:
+                # GR4.x
+                return {
+                    control_col_1: gr.Column(visible=False),
+                    control_col_2: gr.Column(visible=True),
+                    control_col_3: gr.Column(visible=False),
+                    # save_original: gr.Checkbox.update(value=SAVE_ORIGINAL,visible=show_br),
+                    imgs_hash_clear: gr.Button(visible=False)
+                }
         
     progressbar_area = gr.Markdown("")
     
@@ -103,6 +142,7 @@ def show(is_img2img: bool, show_br: bool = True, **msgs):
                     img = gr.Image(
                         type="pil",
                         label="Single Source Image",
+                        height=360,
                     )
                     imgs = gr.Files(
                         label=f"Multiple Source Images{msgs['extra_multiple_source']}",

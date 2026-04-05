@@ -17,9 +17,16 @@ try:
 except:
     EP_is_visible = False
 def update_models_list(selected: str):
-    return gr.Dropdown.update(
-        value=selected, choices=get_models()
-    )
+    try:
+        # GR3.x
+        return gr.Dropdown.update(
+            value=selected, choices=get_models()
+        )
+    except:
+        # GR4.x
+        return gr.Dropdown(
+            value=selected, choices=get_models()
+        )
 def show(hash_check_block: bool = True):
     # TAB SETTINGS
     with gr.Tab("Settings"):

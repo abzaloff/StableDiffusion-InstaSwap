@@ -17,6 +17,7 @@ def show():
             img_fm = gr.Image(
                 type="pil",
                 label="Load Image to build Face Model",
+                height=360,
             )
             with gr.Row(equal_height=True):
                 fm_name = gr.Textbox(
