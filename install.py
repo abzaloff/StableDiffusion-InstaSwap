@@ -25,6 +25,8 @@ models_dir = os.path.join(models_path, "insightface")
 model_url = "https://github.com/facefusion/facefusion-assets/releases/download/models/inswapper_128.onnx"
 model_name = os.path.basename(model_url)
 model_path = os.path.join(models_dir, model_name)
+model_tmp_path = model_path + ".part"
+model_min_size = 100 * 1024 * 1024
 
 def pip_install(*args):
     subprocess.run([sys.executable, "-m", "pip", "install", *args])
@@ -50,18 +52,75 @@ def is_installed (
         print(f"Error: {e}")
         return False
     
+def is_valid_swapper_model(path):
+    try:
+        if not os.path.exists(path):
+            return False
+        if os.path.getsize(path) < model_min_size:
+            print(f"Face swap model is too small: {path}", flush=True)
+            return False
+        import onnx
+        onnx.load(path)
+        return True
+    except Exception as e:
+        print(f"Face swap model validation failed: {e}", flush=True)
+        return False
+
+def download_and_validate_swapper_model():
+    if os.path.exists(model_tmp_path):
+        print(f"Removing incomplete previous download: {model_tmp_path}", flush=True)
+        os.remove(model_tmp_path)
+
+    print(f"Downloading face swap model to temporary file: {model_tmp_path}", flush=True)
+    print("This can take several minutes. Do not close Forge until the download finishes.", flush=True)
+    download(model_url, model_tmp_path)
+
+    print("Download finished, verifying face swap model...", flush=True)
+    if not is_valid_swapper_model(model_tmp_path):
+        try:
+            os.remove(model_tmp_path)
+        except OSError:
+            pass
+        raise RuntimeError("Downloaded face swap model is invalid")
+
+    os.replace(model_tmp_path, model_path)
+    print(f"Face swap model has been downloaded and verified: {model_path}", flush=True)
+
+def ensure_swapper_model_works():
+    if os.path.exists(model_path) and is_valid_swapper_model(model_path):
+        return True
+
+    if os.path.exists(model_path):
+        print("Face swap model is broken and will be downloaded again", flush=True)
+    else:
+        print("Face swap model is missing and will be downloaded", flush=True)
+
+    download_and_validate_swapper_model()
+    return False
+
 def download(url, path):
-    request = urllib.request.urlopen(url)
-    total = int(request.headers.get('Content-Length', 0))
-    with tqdm(total=total, desc='Downloading models...', unit='B', unit_scale=True, unit_divisor=1024) as progress:
-        urllib.request.urlretrieve(url, path, reporthook=lambda count, block_size, total_size: progress.update(block_size))
+    with urllib.request.urlopen(url) as request:
+        total = int(request.headers.get('Content-Length', 0))
+        downloaded = 0
+        next_progress = 50 * 1024 * 1024
+        with open(path, "wb") as file:
+            with tqdm(total=total, desc=f"Downloading {os.path.basename(path)}", unit='B', unit_scale=True, unit_divisor=1024) as progress:
+                while True:
+                    chunk = request.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    file.write(chunk)
+                    downloaded += len(chunk)
+                    progress.update(len(chunk))
+                    if downloaded >= next_progress:
+                        if total > 0:
+                            print(f"Download progress: {downloaded // (1024 * 1024)} MB / {total // (1024 * 1024)} MB", flush=True)
+                        else:
+                            print(f"Download progress: {downloaded // (1024 * 1024)} MB", flush=True)
+                        next_progress += 50 * 1024 * 1024
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
-
-if not os.path.exists(model_path):
-    download(model_url, model_path)
-
 
 last_device = None
 first_run = False
@@ -122,6 +181,8 @@ with open(req_file) as file:
             print(e)
             print(f"\nERROR: Failed to install {package} - InstaSwap won't start")
             raise e
+    if not ensure_swapper_model_works():
+        install_count += 1
     if install_count > 0:
         print(f"""
         +---------------------------------+

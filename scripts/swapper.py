@@ -132,9 +132,32 @@ def getAnalysisModel():
 def getFaceSwapModel(model_path: str):
     global FS_MODEL
     global CURRENT_FS_MODEL_PATH
+    if model_path is None or model_path == "None":
+        logger.error("Face swap model is not selected")
+        return None
+
+    if not os.path.isabs(model_path):
+        model_path = os.path.join(models_path, "insightface", model_path)
+
+    if not os.path.exists(model_path):
+        logger.error("Face swap model was not found: %s", model_path)
+        return None
+
     if CURRENT_FS_MODEL_PATH is None or CURRENT_FS_MODEL_PATH != model_path:
+        try:
+            FS_MODEL = insightface.model_zoo.get_model(model_path, providers=PROVIDERS)
+        except Exception as e:
+            FS_MODEL = None
+            CURRENT_FS_MODEL_PATH = None
+            logger.error("Failed to load face swap model %s: %s", model_path, e)
+            return None
+
+        if FS_MODEL is None:
+            CURRENT_FS_MODEL_PATH = None
+            logger.error("Face swap model was not recognized by InsightFace: %s", model_path)
+            return None
+
         CURRENT_FS_MODEL_PATH = model_path
-        FS_MODEL = insightface.model_zoo.get_model(model_path, providers=PROVIDERS)
 
     return FS_MODEL
 
@@ -655,6 +678,10 @@ def operate(
     ):
     result = target_img
     face_swapper = getFaceSwapModel(model)
+    if face_swapper is None:
+        result_image = Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+        output.append(f"Face swap model could not be loaded: {model}\n")
+        return result_image, output, swapped
 
     source_face_idx = 0
 
@@ -683,7 +710,16 @@ def operate(
             
             if target_face is not None and wrong_gender == 0:
                 logger.job("Swapping Source into Target")
-                swapped_image = face_swapper.get(result, target_face, source_face)
+                try:
+                    swapped_image = face_swapper.get(result, target_face, source_face)
+                except AttributeError as e:
+                    logger.error("Face swap model is not ready: %s", e)
+                    output.append(f"Face swap model is not ready: {e}\n")
+                    continue
+                except Exception as e:
+                    logger.error("Face swap failed: %s", e)
+                    output.append(f"Face swap failed: {e}\n")
+                    continue
                                         
                 if mask_face:
                     result = apply_face_mask(swapped_image=swapped_image,target_image=result,target_face=target_face,entire_mask_image=entire_mask_image)
